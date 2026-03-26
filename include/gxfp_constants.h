@@ -1,0 +1,41 @@
+#ifndef __GXFP_CONSTANTS_H
+#define __GXFP_CONSTANTS_H
+
+#define GXFP_MAILBOX_MIN_SIZE		0x1000
+
+#define GXFP_READ_CHUNK_MAX		0xe00
+#define GXFP_TX_BUFFER_SIZE		0x200
+
+#define GXFP_CMD_FIRMWARE_VERSION	0xA8
+#define GXFP_CMD_TRIGGER_MCU_STATE	0xAF
+#define GXFP_CMD_QUERY_MCU_STATE	0xAE
+#define GXFP_CMD_ACK			0xB0
+#define GXFP_CMD_UPLOAD_CONFIG_MCU	0x90
+#define GXFP_CMD_NOTIFY_POWER_STATE	0x0E
+#define GXFP_CMD_PROTOCOL_INIT		0x01
+#define GXFP_CMD_SLEEP_CLEANUP		0xD2
+#define GXFP_CMD_RESET_DEVICE		0xA1
+#define GXFP_CMD_TLS_UNLOCK		0xD4
+
+#define GXFP_MAX_VERSION_RAW		512
+#define GXFP_MAX_VERSION_ASCII      32
+#define GXFP_MAX_MCU_STATE_PAYLOAD	256
+
+#define GXFP_DEFAULT_RETRY_COUNT	8
+#define GXFP_DEFAULT_TIMEOUT_US	15000
+#define GXFP_RESET_DELAY_US		200000
+
+#define GXFP_FRAME_ALIGNMENT		8
+
+/* Mailbox packet types (high nibble of mp_flags).
+ * A: normal command/response MP frame.
+ * B: TLS/session payloads.
+ */
+#define GXFP_MP_TYPE_A		0xAu
+#define GXFP_MP_TYPE_B		0xBu
+#define GXFP_MP_TYPE_C		0xCu
+
+#define GXFP_ESPI_WRAPPER_MAGIC	0xF0
+#define GXFP_ESPI_SEQ16_INIT		0x8881
+
+#endif /* __GXFP_CONSTANTS_H */
