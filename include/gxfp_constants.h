@@ -27,10 +27,6 @@
 
 #define GXFP_FRAME_ALIGNMENT		8
 
-/* Mailbox packet types (high nibble of mp_flags).
- * A: normal command/response MP frame.
- * B: TLS/session payloads.
- */
 #define GXFP_MP_TYPE_A		0xAu
 #define GXFP_MP_TYPE_B		0xBu
 #define GXFP_MP_TYPE_C		0xCu

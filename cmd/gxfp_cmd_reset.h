@@ -5,6 +5,10 @@
 
 struct gxfp_dev;
 
+#define GXFP_RESET_FLAG_SENSOR 0x01u
+#define GXFP_RESET_FLAG_MCU 0x02u
+#define GXFP_RESET_FLAG_MCU_SENSOR (GXFP_RESET_FLAG_MCU | GXFP_RESET_FLAG_SENSOR)
+
 int gxfp_cmd_sleep_cleanup(struct gxfp_dev *gdev, unsigned int post_delay_ms);
 
 int gxfp_cmd_notify_power_state(struct gxfp_dev *gdev,

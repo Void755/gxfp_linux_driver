@@ -125,7 +125,7 @@ int gxfp_cmd_recover_session(struct gxfp_dev *gdev, bool unstick_tls)
 		rc = r;
 
 	for (tries = 0; tries < 6; tries++) {
-		r = gxfp_cmd_reset_device(gdev, 0x02);
+		r = gxfp_cmd_reset_device(gdev, GXFP_RESET_FLAG_MCU_SENSOR);
 		if (!r)
 			break;
 		if ((tries + 1) < 6)
