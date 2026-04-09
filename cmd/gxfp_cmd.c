@@ -5,7 +5,8 @@
 #include <linux/slab.h>
 
 #include "gxfp_cmd.h"
-#include "../proto/gxfp_proto.h"
+#include "../proto/gxfp_goodix_proto.h"
+#include "../proto/gxfp_mp_proto.h"
 #include "../transport/gxfp_espi_tx.h"
 #include "../hw/gxfp_delay.h"
 #include "gxfp_priv.h"
@@ -14,10 +15,13 @@
 int gxfp_xfer(struct gxfp_dev *gdev, const struct gxfp_xfer_req *req)
 {
 	__u8 *tx;
+	__u8 *body;
 	__u8 *rx;
 	size_t rx_len = 0;
 	unsigned int t;
+	int body_len;
 	int frame_len;
+	int ret;
 
 	if (!gdev || !req)
 		return -EINVAL;
@@ -31,25 +35,37 @@ int gxfp_xfer(struct gxfp_dev *gdev, const struct gxfp_xfer_req *req)
 	tx = kmalloc(GXFP_TX_BUFFER_SIZE, GFP_KERNEL);
 	if (!tx)
 		return -ENOMEM;
+	body = kmalloc(GXFP_TX_BUFFER_SIZE, GFP_KERNEL);
+	if (!body) {
+		ret = -ENOMEM;
+		goto out_free_tx;
+	}
 
 	rx = kmalloc(GXFP_MAILBOX_MIN_SIZE, GFP_KERNEL);
 	if (!rx) {
-		kfree(tx);
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto out_free_body;
 	}
 
-	frame_len = gxfp_goodix_build_frame(req->req_cmd,
-				    req->req_payload, req->req_payload_len,
-				    tx, GXFP_TX_BUFFER_SIZE);
+	body_len = gxfp_goodix_build_frame(req->req_cmd,
+				   req->req_payload, req->req_payload_len,
+				   body, GXFP_TX_BUFFER_SIZE);
+	if (body_len < 0) {
+		ret = body_len;
+		goto out_free_rx;
+	}
+
+	frame_len = gxfp_mp_build_frame(GXFP_MP_TYPE_A,
+				 body, (size_t)body_len,
+				 tx, GXFP_TX_BUFFER_SIZE);
 	if (frame_len < 0) {
-		kfree(tx);
-		kfree(rx);
-		return frame_len;
+		ret = frame_len;
+		goto out_free_rx;
 	}
 
 	for (t = 0; t < (req->tries ? req->tries : 1); t++) {
+		struct gxfp_mp_frame_parsed mp;
 		struct gxfp_frame_parsed p;
-		int ret;
 
 		ret = gxfp_espi_xfer(gdev, tx, (size_t)frame_len,
 				    rx, GXFP_MAILBOX_MIN_SIZE, &rx_len);
@@ -58,13 +74,13 @@ int gxfp_xfer(struct gxfp_dev *gdev, const struct gxfp_xfer_req *req)
 			continue;
 		}
 
-		if (!gxfp_parse_goodix_frame(rx,
-					    min_t(size_t, rx_len, (size_t)GXFP_MAILBOX_MIN_SIZE),
-					    &p)) {
+		if (!gxfp_parse_mp_frame(rx,
+					 min_t(size_t, rx_len, (size_t)GXFP_MAILBOX_MIN_SIZE),
+					 &mp)) {
 			gxfp_busy_wait_us(req->retry_delay_us);
 			continue;
 		}
-		if (!p.valid || !p.mp_header_ok) {
+		if (!gxfp_parse_goodix_body(mp.payload, mp.payload_len, &p) || !p.valid) {
 			gxfp_busy_wait_us(req->retry_delay_us);
 			continue;
 		}
@@ -79,9 +95,8 @@ int gxfp_xfer(struct gxfp_dev *gdev, const struct gxfp_xfer_req *req)
 
 		if (req->resp_payload) {
 			if (p.payload_len > req->resp_payload_cap) {
-				kfree(tx);
-				kfree(rx);
-				return -EMSGSIZE;
+				ret = -EMSGSIZE;
+				goto out_free_rx;
 			}
 			memcpy(req->resp_payload, p.payload, p.payload_len);
 		}
@@ -92,15 +107,19 @@ int gxfp_xfer(struct gxfp_dev *gdev, const struct gxfp_xfer_req *req)
 			*req->out_frame = p;
 			req->out_frame->payload = req->resp_payload;
 		}
-
-		kfree(tx);
-		kfree(rx);
-		return 0;
+		ret = 0;
+		goto out_free_rx;
 	}
 
-	kfree(tx);
+	ret = -ETIMEDOUT;
+
+out_free_rx:
 	kfree(rx);
-	return -ETIMEDOUT;
+out_free_body:
+	kfree(body);
+out_free_tx:
+	kfree(tx);
+	return ret;
 }
 
 int gxfp_cmd_xfer(struct gxfp_dev *gdev,

@@ -13,7 +13,7 @@
 #include "gxfp_priv.h"
 #include "gxfp_uapi.h"
 #include "../include/uapi/linux/gxfp_ioctl.h"
-#include "../proto/gxfp_proto.h"
+#include "../proto/gxfp_mp_proto.h"
 
 void gxfp_uapi_rxq_flush_locked(struct gxfp_dev *gdev)
 {

@@ -14,15 +14,15 @@
 #include "gxfp_constants.h"
 
 int gxfp_espi_xfer(struct gxfp_dev *gdev,
-		   const __u8 *goodix_payload,
-		   size_t goodix_len,
+		   const __u8 *mp_frame,
+		   size_t mp_frame_len,
 		   __u8 *rx_buf,
 		   size_t rx_cap,
 		   size_t *out_rx_len)
 {
 	int ret;
 
-	ret = gxfp_espi_write(gdev, goodix_payload, goodix_len);
+	ret = gxfp_espi_write(gdev, mp_frame, mp_frame_len);
 	if (ret)
 		return ret;
 
@@ -32,8 +32,8 @@ int gxfp_espi_xfer(struct gxfp_dev *gdev,
 }
 
 int gxfp_espi_write(struct gxfp_dev *gdev,
-		    const __u8 *goodix_payload,
-		    size_t goodix_len)
+		    const __u8 *mp_frame,
+		    size_t mp_frame_len)
 {
 	__u8 *tx;
 	__u16 seq16;
@@ -41,14 +41,14 @@ int gxfp_espi_write(struct gxfp_dev *gdev,
 	size_t tx_len;
 	int ret;
 
-	if (!gdev || !goodix_payload || goodix_len == 0)
+	if (!gdev || !mp_frame || mp_frame_len == 0)
 		return -EINVAL;
 	if (!gdev->hw.mailbox_mmio)
 		return -ENODEV;
 
-	pad = (GXFP_ESPI_ALIGN - (goodix_len & (GXFP_ESPI_ALIGN - 1))) &
+	pad = (GXFP_ESPI_ALIGN - (mp_frame_len & (GXFP_ESPI_ALIGN - 1))) &
 	      (GXFP_ESPI_ALIGN - 1);
-	tx_len = 8 + goodix_len + pad;
+	tx_len = 8 + mp_frame_len + pad;
 	if (tx_len > GXFP_TX_BUFFER_SIZE)
 		return -EOVERFLOW;
 
@@ -58,22 +58,22 @@ int gxfp_espi_write(struct gxfp_dev *gdev,
 
 	memset(tx, 0, tx_len);
 	tx[0] = GXFP_ESPI_WRAPPER_MAGIC;
-	tx[1] = (__u8)(goodix_len & 0xff);
-	tx[2] = (__u8)((goodix_len >> 8) & 0xff);
+	tx[1] = (__u8)(mp_frame_len & 0xff);
+	tx[2] = (__u8)((mp_frame_len >> 8) & 0xff);
 	tx[3] = (__u8)((tx[0] + tx[1] + tx[2]) & 0xff);
 
 	seq16 = (__u16)(atomic_inc_return(&gdev->mailbox_seq16) & 0xFFFF);
 	tx[4] = (__u8)(seq16 & 0xff);
 	tx[5] = (__u8)((seq16 >> 8) & 0xff);
 
-	memcpy(&tx[8], goodix_payload, goodix_len);
+	memcpy(&tx[8], mp_frame, mp_frame_len);
 
 	ret = gxfp_mmio_write_qword_aligned(gdev->hw.mailbox_mmio, tx,
 					 ALIGN(tx_len, GXFP_ESPI_ALIGN));
 	if (ret) {
 		dev_err_ratelimited(gdev->dev,
 			"ESPI TX: mmio_write failed rc=%d seq16=0x%04x payload_len=%zu\n",
-			ret, seq16, goodix_len);
+			ret, seq16, mp_frame_len);
 		kfree(tx);
 		return -EIO;
 	}

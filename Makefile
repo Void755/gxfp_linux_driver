@@ -17,7 +17,8 @@ gxfp-y := \
 	hw/gxfp_delay.o \
 	hw/gxfp_mmio.o \
 	hw/gxfp_gpio.o \
-	proto/gxfp_proto.o \
+	proto/gxfp_mp_proto.o \
+	proto/gxfp_goodix_proto.o \
 	cmd/gxfp_cmd.o \
 	driver/gxfp_platform.o \
 	driver/gxfp_irq.o \

@@ -6,7 +6,6 @@
 #include <linux/timekeeping.h>
 
 #include "gxfp_priv.h"
-#include "../proto/gxfp_proto.h"
 #include "gxfp_cmd.h"
 #include "gxfp_constants.h"
 #include "gxfp_cmd_mcu_state.h"

@@ -7,7 +7,7 @@
 #include "gxfp_espi_common.h"
 #include "gxfp_priv.h"
 #include "../hw/gxfp_mmio.h"
-#include "../proto/gxfp_proto.h"
+#include "../proto/gxfp_mp_proto.h"
 
 void gxfp_espi_irq_assem_reset(struct gxfp_dev *gdev)
 {
@@ -57,9 +57,9 @@ int gxfp_espi_rx_start_packet(struct gxfp_dev *gdev,
 		return ret;
 
 	if (validate_head) {
-		if (!gxfp_goodix_check_package_head(rx_buf, 4, &mp_len)) {
+		if (!gxfp_check_mp_head(rx_buf, 4, &mp_len)) {
 			dev_warn_ratelimited(gdev->dev,
-				"ESPI RX: bad package head (gxfp_goodix_check_package_head failed)\n");
+				"ESPI RX: bad package head (gxfp_check_mp_head failed)\n");
 			return -EBADMSG;
 		}
 	} else {

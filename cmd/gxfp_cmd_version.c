@@ -6,7 +6,6 @@
 #include <linux/string.h>
 
 #include "gxfp_priv.h"
-#include "../proto/gxfp_proto.h"
 #include "gxfp_cmd.h"
 #include "../hw/gxfp_delay.h"
 #include "gxfp_constants.h"
