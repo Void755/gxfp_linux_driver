@@ -13,6 +13,7 @@
 #include "gxfp_priv.h"
 #include "gxfp_uapi.h"
 #include "../include/uapi/linux/gxfp_ioctl.h"
+#include "../proto/gxfp_proto.h"
 
 void gxfp_uapi_rxq_flush_locked(struct gxfp_dev *gdev)
 {
@@ -25,32 +26,28 @@ static void gxfp_uapi_rxq_push(struct gxfp_dev *gdev, const __u8 *buf, size_t le
 {
 	unsigned long flags;
 	struct gxfp_tap_hdr hdr;
-	unsigned int type = 0;
-	unsigned int mp_len = 0;
+	struct gxfp_mp_frame_parsed mp;
 	size_t need;
 
 	if (!gdev || !gdev->uapi.rxq_inited || !buf || len == 0)
 		return;
-	if (len > (size_t)U32_MAX)
+	if (!gxfp_parse_mp_frame(buf, len, &mp) || !mp.valid)
+		return;
+	if (mp.payload_len > (size_t)U32_MAX)
 		return;
 
 	memset(&hdr, 0, sizeof(hdr));
-	hdr.len = (__u32)len;
-	if (len >= 3)
-		mp_len = (unsigned int)(buf[1] | (buf[2] << 8));
-	if (len >= 1)
-		type = (unsigned int)(buf[0] >> 4);
-	hdr.type = (__u32)type;
-	hdr.mp_len = (__u32)mp_len;
+	hdr.len = (__u32)mp.payload_len;
+	hdr.type = (__u32)(mp.flags >> 4);
 	hdr.ts_ns = ktime_get_ns();
-	memcpy(hdr.head16, buf, min_t(size_t, len, sizeof(hdr.head16)));
+	memcpy(hdr.head16, mp.payload, min_t(size_t, mp.payload_len, sizeof(hdr.head16)));
 
 	spin_lock_irqsave(&gdev->uapi.rxq_lock, flags);
 	if (!gdev->uapi.rxq_inited) {
 		spin_unlock_irqrestore(&gdev->uapi.rxq_lock, flags);
 		return;
 	}
-	need = sizeof(hdr) + len;
+	need = sizeof(hdr) + mp.payload_len;
 	if (kfifo_avail(&gdev->uapi.rxq_fifo) < need) {
 		unsigned int avail = kfifo_avail(&gdev->uapi.rxq_fifo);
 		spin_unlock_irqrestore(&gdev->uapi.rxq_lock, flags);
@@ -60,7 +57,7 @@ static void gxfp_uapi_rxq_push(struct gxfp_dev *gdev, const __u8 *buf, size_t le
 		return;
 	}
 	(void)kfifo_in(&gdev->uapi.rxq_fifo, (const void *)&hdr, sizeof(hdr));
-	(void)kfifo_in(&gdev->uapi.rxq_fifo, buf, len);
+	(void)kfifo_in(&gdev->uapi.rxq_fifo, mp.payload, mp.payload_len);
 	spin_unlock_irqrestore(&gdev->uapi.rxq_lock, flags);
 
 	wake_up_interruptible(&gdev->uapi.rxq_wq);

@@ -11,17 +11,16 @@
  */
 #define GXFP_IOCTL_TX_PAYLOAD_MAX 508u
 
-/* Maximum TAP payload bytes exported via read(2) records. */
+/* Maximum protocol payload bytes exported via read(2) records. */
 #define GXFP_IOCTL_TAP_PAYLOAD_MAX (128u * 1024u)
 
 /* 
  * Stream tap (read/poll) record header.
- * Followed by `len` bytes of raw upstream packet.
+ * Followed by `len` bytes of protocol payload.
  */
 struct gxfp_tap_hdr {
-	__u32 len;       /* payload bytes following this header */
-	__u32 type;      /* mp_flags>>4 for MP packets */
-	__u32 mp_len;    /* MP length field */
+	__u32 len;       /* protocol payload bytes */
+	__u32 type;      /* MP type */
 	__u32 _rsvd0;
 	__u64 ts_ns;     /* ktime_get_ns() */
 	__u8 head16[16]; /* first 16 bytes of payload */
