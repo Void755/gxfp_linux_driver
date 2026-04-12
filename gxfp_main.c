@@ -19,7 +19,6 @@ static int gxfp_startup_sequence(struct platform_device *pdev)
 	struct gxfp_dev *gdev = platform_get_drvdata(pdev);
 	struct gxfp_get_version_result ver;
 	struct gxfp_mcu_state mcu;
-	bool unstick_tls;
 	int rc;
 	int mcu_rc;
 	unsigned int try;
@@ -42,11 +41,10 @@ static int gxfp_startup_sequence(struct platform_device *pdev)
 	}
 	mcu_rc = gxfp_cmd_query_mcu_state(gdev, &mcu);
 	if (ver.status != 0) {
-		unstick_tls = mcu_rc == 0 && mcu.is_tls_connected;
 		dev_warn(&pdev->dev,
-			 "INIT: get_version failed (%d); attempting recover_session(unstick_tls=%u) then retry\n",
-			 (int)ver.status, unstick_tls ? 1 : 0);
-		(void)gxfp_cmd_recover_session(gdev, unstick_tls);
+			 "INIT: get_version failed (%d); attempting recover_session then retry\n",
+			 (int)ver.status);
+		(void)gxfp_cmd_recover_session(gdev, 1);
 		(void)gxfp_cmd_get_version(gdev, &ver);
 	}
 	mutex_unlock(&gdev->lock);
