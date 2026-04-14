@@ -22,6 +22,7 @@ gxfp-y := \
 	cmd/gxfp_cmd.o \
 	driver/gxfp_platform.o \
 	driver/gxfp_irq.o \
+	driver/gxfp_trace.o \
 	driver/gxfp_uapi_fifo.o \
 	driver/gxfp_uapi_ctrl.o \
 	driver/gxfp_uapi_misc.o \

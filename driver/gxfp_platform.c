@@ -15,6 +15,7 @@
 #include "gxfp_uapi.h"
 #include "gxfp_irq.h"
 #include "gxfp_platform.h"
+#include "gxfp_trace.h"
 
 #define GXFP_IRQ_RX_CAP (128u * 1024u)
 
@@ -110,6 +111,7 @@ int gxfp_platform_probe(struct platform_device *pdev)
 		return PTR_ERR(gdev->hw.mailbox_mmio);
 
 	platform_set_drvdata(pdev, gdev);
+	(void)gxfp_trace_init(&pdev->dev);
 
 	/* GPIOs */
 	{
@@ -242,5 +244,6 @@ void gxfp_platform_remove(struct platform_device *pdev)
 		disable_irq(gdev->hw.irq);
 		synchronize_irq(gdev->hw.irq);
 	}
+	gxfp_trace_exit();
 	gxfp_uapi_unregister(gdev);
 }

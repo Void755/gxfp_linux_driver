@@ -12,6 +12,7 @@
 #include "../hw/gxfp_gpio.h"
 #include "../hw/gxfp_mmio.h"
 #include "gxfp_constants.h"
+#include "../driver/gxfp_trace.h"
 
 int gxfp_espi_xfer(struct gxfp_dev *gdev,
 		   const __u8 *mp_frame,
@@ -70,6 +71,8 @@ int gxfp_espi_write(struct gxfp_dev *gdev,
 
 	ret = gxfp_mmio_write_qword_aligned(gdev->hw.mailbox_mmio, tx,
 					 ALIGN(tx_len, GXFP_ESPI_ALIGN));
+	gxfp_trace_logf("espi_tx rc=%d seq=0x%04x mp_len=%zu mp_head=%*ph", ret,
+		seq16, mp_frame_len, (int)min_t(size_t, 8, mp_frame_len), mp_frame);
 	if (ret) {
 		dev_err_ratelimited(gdev->dev,
 			"ESPI TX: mmio_write failed rc=%d seq16=0x%04x payload_len=%zu\n",

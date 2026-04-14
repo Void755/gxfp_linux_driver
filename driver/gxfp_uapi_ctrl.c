@@ -1,4 +1,5 @@
 #include <linux/fs.h>
+#include <linux/kernel.h>
 #include <linux/uaccess.h>
 #include <linux/slab.h>
 #include <linux/errno.h>
@@ -7,6 +8,7 @@
 #include "../transport/gxfp_espi_tx.h"
 #include "../include/uapi/linux/gxfp_ioctl.h"
 #include "gxfp_uapi.h"
+#include "gxfp_trace.h"
 
 int gxfp_uapi_open(struct inode *inode, struct file *file)
 {
@@ -32,6 +34,7 @@ int gxfp_uapi_open(struct inode *inode, struct file *file)
 	}
 
 	file->private_data = gdev;
+	gxfp_trace_logf("uapi_open ok mode=0x%x", file->f_mode);
 	return 0;
 }
 
@@ -93,6 +96,8 @@ ssize_t gxfp_uapi_write(struct file *file, const char __user *ubuf, size_t count
 	mutex_lock(&gdev->lock);
 	ret = gxfp_espi_write(gdev, mp_local, 4u + payload_len);
 	mutex_unlock(&gdev->lock);
+	gxfp_trace_logf("uapi_write rc=%d mp_len=%zu head=%*ph", ret, 4u + payload_len,
+		(int)min_t(size_t, 8, 4u + payload_len), mp_local);
 
 	kfree(mp_local);
 	if (ret)
@@ -121,6 +126,7 @@ long gxfp_uapi_unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long
 		gxfp_uapi_rxq_flush_locked(gdev);
 		spin_unlock_irqrestore(&gdev->uapi.rxq_lock, flush_flags);
 		mutex_unlock(&gdev->uapi.rxq_mutex);
+		gxfp_trace_logf("uapi_ioctl flush_rxq ok");
 		return 0;
 	}
 	default:

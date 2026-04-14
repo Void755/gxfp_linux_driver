@@ -11,6 +11,7 @@
 #include "../hw/gxfp_delay.h"
 #include "gxfp_priv.h"
 #include "gxfp_constants.h"
+#include "../driver/gxfp_trace.h"
 
 int gxfp_xfer(struct gxfp_dev *gdev, const struct gxfp_xfer_req *req)
 {
@@ -62,6 +63,8 @@ int gxfp_xfer(struct gxfp_dev *gdev, const struct gxfp_xfer_req *req)
 		ret = frame_len;
 		goto out_free_rx;
 	}
+	gxfp_trace_logf("cmd_req req=0x%02x expect=0x%02x tries=%u tx_mp_len=%d",
+		req->req_cmd, req->expect_cmd, req->tries ? req->tries : 1, frame_len);
 
 	for (t = 0; t < (req->tries ? req->tries : 1); t++) {
 		struct gxfp_mp_frame_parsed mp;
@@ -70,6 +73,8 @@ int gxfp_xfer(struct gxfp_dev *gdev, const struct gxfp_xfer_req *req)
 		ret = gxfp_espi_xfer(gdev, tx, (size_t)frame_len,
 				    rx, GXFP_MAILBOX_MIN_SIZE, &rx_len);
 		if (ret) {
+			gxfp_trace_logf("cmd_retry req=0x%02x expect=0x%02x try=%u rc=%d",
+				req->req_cmd, req->expect_cmd, t + 1, ret);
 			gxfp_busy_wait_us(req->retry_delay_us);
 			continue;
 		}
@@ -77,6 +82,8 @@ int gxfp_xfer(struct gxfp_dev *gdev, const struct gxfp_xfer_req *req)
 		if (!gxfp_parse_mp_frame(rx,
 					 min_t(size_t, rx_len, (size_t)GXFP_MAILBOX_MIN_SIZE),
 					 &mp)) {
+			gxfp_trace_logf("cmd_bad_mp req=0x%02x expect=0x%02x try=%u rx_len=%zu",
+				req->req_cmd, req->expect_cmd, t + 1, rx_len);
 			gxfp_busy_wait_us(req->retry_delay_us);
 			continue;
 		}
@@ -89,6 +96,8 @@ int gxfp_xfer(struct gxfp_dev *gdev, const struct gxfp_xfer_req *req)
 			continue;
 		}
 		if (p.cmd != req->expect_cmd) {
+			gxfp_trace_logf("cmd_unexpected req=0x%02x expect=0x%02x got=0x%02x try=%u",
+				req->req_cmd, req->expect_cmd, p.cmd, t + 1);
 			gxfp_busy_wait_us(req->retry_delay_us);
 			continue;
 		}
@@ -108,10 +117,14 @@ int gxfp_xfer(struct gxfp_dev *gdev, const struct gxfp_xfer_req *req)
 			req->out_frame->payload = req->resp_payload;
 		}
 		ret = 0;
+		gxfp_trace_logf("cmd_ok req=0x%02x expect=0x%02x try=%u payload=%u",
+			req->req_cmd, req->expect_cmd, t + 1, p.payload_len);
 		goto out_free_rx;
 	}
 
 	ret = -ETIMEDOUT;
+	gxfp_trace_logf("cmd_timeout req=0x%02x expect=0x%02x tries=%u",
+		req->req_cmd, req->expect_cmd, req->tries ? req->tries : 1);
 
 out_free_rx:
 	kfree(rx);
