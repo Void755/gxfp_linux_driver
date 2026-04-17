@@ -43,6 +43,7 @@ int gxfp_espi_irq_read_step(struct gxfp_dev *gdev,
 
 		copied = gdev->irq.assem_copied;
 		if (copied >= total) {
+			gxfp_gpio_set_read_done(gdev, 1);
 			gxfp_espi_irq_assem_reset(gdev);
 			if (complete)
 				*complete = true;
@@ -51,7 +52,7 @@ int gxfp_espi_irq_read_step(struct gxfp_dev *gdev,
 			return 0;
 		}
 
-		gxfp_gpio_pulse_write_done(gdev);
+		gxfp_gpio_pulse_read_done(gdev);
 		if (out_rx_len)
 			*out_rx_len = copied;
 		return 0;
@@ -102,12 +103,13 @@ int gxfp_espi_irq_read_step(struct gxfp_dev *gdev,
 	}
 
 	if (copied < total) {
-		gxfp_gpio_pulse_write_done(gdev);
+		gxfp_gpio_pulse_read_done(gdev);
 		if (out_rx_len)
 			*out_rx_len = copied;
 		return 0;
 	}
 
+	gxfp_gpio_set_read_done(gdev, 1);
 	gxfp_espi_irq_assem_reset(gdev);
 	if (complete)
 		*complete = true;

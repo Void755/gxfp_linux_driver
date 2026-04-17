@@ -67,7 +67,7 @@ static int gxfp_espi_read_assemble(struct gxfp_dev *gdev,
 		off += chunk;
 
 		if (off < total) {
-			gxfp_gpio_pulse_write_done(gdev);
+			gxfp_gpio_pulse_read_done(gdev);
 			gxfp_busy_wait_us(GXFP_DEFAULT_TIMEOUT_US);
 		}
 	}

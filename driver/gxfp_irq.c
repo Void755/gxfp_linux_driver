@@ -26,8 +26,6 @@ irqreturn_t gxfp_irq_thread(int irq, void *data)
 
 	mutex_lock(&gdev->lock);
 
-	gxfp_gpio_set_read_done(gdev, 1);
-
 	ret = gxfp_espi_irq_read_step(gdev, gdev->irq.rx_buf, gdev->irq.rx_cap,
 			     &rx_len, &complete);
 	if (ret) {
